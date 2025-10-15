@@ -1,0 +1,39 @@
+# Project Configuration
+project_name = "My Development Project"
+project_id   = "my-dev-project-12345"
+
+# Organization/Folder (set one of these)
+# folder_id = "123456789012"
+org_id = "123456789012"
+
+# Billing (optional - set skip_billing = true for testing)
+# billing_account = "01234A-567890-ABCDEF"
+skip_billing = false
+
+# Infrastructure
+region = "us-central1"
+zone   = "us-central1-a"
+
+# Networking
+subnet_cidr = "10.0.0.0/24"
+ssh_source_ranges = [
+  "0.0.0.0/0"  # Allow SSH from anywhere (restrict in production)
+]
+
+# VM Configuration
+enable_external_ip = true
+create_static_ip   = false
+boot_disk_image    = "ubuntu-os-cloud/ubuntu-2004-lts"
+boot_disk_size     = 10
+
+# SSH Access (replace with your actual public key)
+ssh_keys = "username:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... username@hostname"
+
+# Optional: Custom startup script
+# startup_script = <<-EOF
+#   #!/bin/bash
+#   apt-get update
+#   apt-get install -y docker.io
+#   systemctl enable docker
+#   systemctl start docker
+# EOF
