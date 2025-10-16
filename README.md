@@ -19,10 +19,14 @@ All secrets and sensitive data are handled through environment variables - never
 ```
 terraform-layers/
 ├── l1/                          # Layer 1: Primitives
+│   ├── backend_service/         # Load balancer backends
 │   ├── compute_instance/        # VM instances
 │   ├── disk/                    # Persistent disks  
 │   ├── firewall_rule/           # Firewall rules
+│   ├── forwarding_rule/         # Load balancer forwarding
+│   ├── health_check/            # Health checks
 │   ├── iam_binding/             # IAM bindings
+│   ├── instance_group/          # Instance groups
 │   ├── ip/                      # Static IP addresses
 │   ├── project/                 # GCP projects
 │   ├── project_services/        # API enablement
@@ -31,11 +35,14 @@ terraform-layers/
 │   └── vpc/                     # VPC networks
 ├── l2/                          # Layer 2: Compositions  
 │   ├── iam_project_roles/       # Project IAM management
+│   ├── ilb_internal/            # Internal Load Balancer
 │   ├── project_bootstrap/       # Project creation & setup
 │   ├── vm_free_tier/            # Free tier VM deployment
 │   └── vpc_basic/               # Basic VPC with subnets
 ├── l3/                          # Layer 3: Consumers
-│   └── envs/dev/vms/            # Development VM deployment
+│   └── envs/dev/
+│       ├── ilb/                 # Internal Load Balancer deployment
+│       └── vms/                 # Development VM deployment
 ├── scripts/                     # Helper scripts
 └── .env.example                 # Environment template
 ```
@@ -65,8 +72,9 @@ source scripts/setup-env.sh
 
 ### 2. Deploy Development Environment
 
+#### Basic VM Deployment
 ```bash
-# Navigate to the consumer example
+# Navigate to the VM consumer example
 cd l3/envs/dev/vms/
 
 # Copy and configure variables
@@ -79,14 +87,43 @@ terraform plan
 terraform apply
 ```
 
-### 3. Access Your VM
+#### Internal Load Balancer Deployment
+```bash
+# Navigate to the ILB consumer example
+cd l3/envs/dev/ilb/
 
+# Copy and configure variables
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+
+# Deploy
+terraform init
+terraform plan
+terraform apply
+```
+
+### 3. Access Your Resources
+
+#### For VM Deployment
 ```bash
 # Get SSH command from output
 terraform output ssh_command
 
 # Or connect directly
 gcloud compute ssh your-vm-name --zone=us-central1-a --project=your-project-id
+```
+
+#### For Internal Load Balancer
+```bash
+# Get load balancer information
+terraform output load_balancer_info
+
+# SSH to test client VM
+terraform output test_vm_info
+
+# Test the load balancer
+gcloud compute ssh test-client-vm --zone=us-central1-a --project=your-project-id
+./test-lb.sh  # Run load balancer tests
 ```
 
 ## 🔧 Environment Variables
@@ -161,6 +198,14 @@ Opinionated combinations of L1 modules with business logic:
 - Validation for proper member formats
 - Support for all identity types
 
+#### `ilb_internal`
+- Complete Internal Load Balancer setup
+- Health checks with HTTP/HTTPS/TCP support
+- Instance groups with automatic VM distribution
+- Backend service with session affinity options
+- Static IP allocation and forwarding rules
+- Global access configuration
+
 ### Layer 3 (L3): Consumers
 
 Production-ready examples consuming only L2 modules:
@@ -172,6 +217,14 @@ Complete development environment deployment:
 - Free tier VM deployment
 - SSH access configuration
 - Comprehensive outputs
+
+#### `envs/dev/ilb/`
+Internal Load Balancer deployment example:
+- Multi-zone backend VM deployment
+- HTTP/HTTPS load balancing setup
+- Health check configuration
+- Test client VM for validation
+- Load balancer monitoring tools
 
 ## 🎯 Free Tier Compliance
 
@@ -268,6 +321,43 @@ module "project_iam" {
       "serviceAccount:${module.vm.service_account_email}"
     ]
   }
+}
+```
+
+### Internal Load Balancer
+
+```hcl
+module "internal_lb" {
+  source = "../../../l2/ilb_internal"
+  
+  name       = "my-app-ilb"
+  project_id = var.project_id
+  region     = "us-central1"
+  
+  network    = module.vpc.vpc_self_link
+  subnetwork = module.vpc.subnet_self_link
+  
+  protocol  = "HTTP"
+  port      = 80
+  port_name = "http"
+  
+  instance_groups = {
+    "zone-a" = {
+      zone      = "us-central1-a"
+      instances = [module.vm1.instance_self_link, module.vm2.instance_self_link]
+    }
+    "zone-b" = {
+      zone      = "us-central1-b" 
+      instances = [module.vm3.instance_self_link]
+    }
+  }
+  
+  health_check_config = {
+    request_path = "/health"
+    port         = 80
+  }
+  
+  create_static_ip = true
 }
 ```
 

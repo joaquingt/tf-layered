@@ -1,0 +1,48 @@
+# Project Configuration
+project_name = "My ILB Development Project"
+project_id   = "my-ilb-dev-project-12345"
+
+# Organization/Folder (set one of these)
+# folder_id = "123456789012"
+org_id = "123456789012"
+
+# Billing (optional - set skip_billing = true for testing)
+# billing_account = "01234A-567890-ABCDEF"
+skip_billing = false
+
+# Infrastructure
+region = "us-central1"
+zones  = ["us-central1-a", "us-central1-b"]
+
+# Networking
+subnet_cidr = "10.0.0.0/24"
+ssh_source_ranges = [
+  "0.0.0.0/0"  # Allow SSH from anywhere (restrict in production)
+]
+
+# Backend VMs Configuration
+backend_vm_count = 3
+boot_disk_image  = "ubuntu-os-cloud/ubuntu-2004-lts"
+boot_disk_size   = 10
+
+# Load Balancer Configuration
+lb_protocol                    = "HTTP"
+backend_port                   = 80
+port_name                      = "http"
+health_check_path             = "/health"
+session_affinity              = "NONE"
+timeout_sec                   = 30
+max_connections_per_instance  = 1000
+create_static_ip              = true
+allow_global_access           = false
+
+# Test Configuration
+create_test_vm = true
+
+# SSH Access (replace with your actual public key)
+ssh_keys = "username:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... username@hostname"
+
+# Advanced Load Balancer Configuration (optional)
+# session_affinity = "CLIENT_IP"
+# timeout_sec = 60
+# allow_global_access = true
